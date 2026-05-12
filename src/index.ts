@@ -240,20 +240,32 @@ server.prompt(
   }
 );
 
-// ─── Tools (mirror of prompts, for clients that don't support MCP prompts) ───
-// ChatGPT's MCP connector currently requires tools rather than prompts.
-// Each tool returns the same content as its corresponding prompt.
+// ─── Tools (mirror of prompts, for clients like ChatGPT) ──────────────────────
+// Each tool uses registerTool with explicit annotations
+// (readOnlyHint, openWorldHint, destructiveHint) which ChatGPT requires.
 
 const textResult = (text: string) => ({
   content: [{ type: "text" as const, text }],
 });
 
-server.tool(
+const READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  openWorldHint: false,
+  destructiveHint: false,
+  idempotentHint: true,
+};
+
+server.registerTool(
   "aias_advisor",
-  "AI Assessment Scale Advisor — returns a system prompt that helps educators redesign homework using the 5-level AI Assessment Scale (AIAS). Use the returned text as your operating instructions for the rest of the conversation.",
   {
-    subject: z.string().optional().describe('Subject area (e.g., "Engineering", "Biology")'),
-    level: z.string().optional().describe('Student level (e.g., "undergraduate")'),
+    title: "AIAS Advisor",
+    description:
+      "Returns a system prompt that turns the assistant into an AI Assessment Scale Advisor, helping educators redesign homework using the 5-level AIAS framework. Use the returned text as operating instructions for the rest of the conversation.",
+    inputSchema: {
+      subject: z.string().optional().describe('Subject area (e.g., "Engineering", "Biology")'),
+      level: z.string().optional().describe('Student level (e.g., "undergraduate")'),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ subject, level }) => {
     let prompt = AIAS_PROMPT;
@@ -265,12 +277,17 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "eml_architect",
-  "EML Architect — returns a system prompt that converts traditional textbook problems into Entrepreneurial Mindset Learning (EML) tasks. Includes all reference materials (Habits of EM, Curiosity Methods, Mindset Methods, EM Openers, Adaptable EML Ideas). Use the returned text as your operating instructions.",
   {
-    em_habits: z.string().optional().describe('EM habits to focus on, e.g. "Curiosity, Creating Value"'),
-    problems: z.string().optional().describe("Textbook problem(s) to reframe"),
+    title: "EML Architect",
+    description:
+      "Returns a system prompt that turns the assistant into an Entrepreneurial Mindset Learning Architect, converting textbook problems into EM learning tasks. Includes full reference materials (Habits of EM, Curiosity Methods, Mindset Methods, EM Openers, Adaptable EML Ideas).",
+    inputSchema: {
+      em_habits: z.string().optional().describe('EM habits to focus on, e.g. "Curiosity, Creating Value"'),
+      problems: z.string().optional().describe("Textbook problem(s) to reframe"),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ em_habits, problems }) => {
     let prompt = getEMLArchitectPrompt(em_habits);
@@ -279,26 +296,41 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "interactive_builder_planning",
-  "Interactive Builder Phase 1 — returns a system prompt that guides faculty through designing a stateless, privacy-safe educational web-app. Produces a Final Blueprint Summary. Use the returned text as your operating instructions.",
-  {},
+  {
+    title: "Interactive Builder — Planning",
+    description:
+      "Returns a system prompt that guides faculty through designing a stateless, privacy-safe educational web-app. Produces a Final Blueprint Summary ready for the coding phase.",
+    inputSchema: {},
+    annotations: READ_ONLY_ANNOTATIONS,
+  },
   async () => textResult(INTERACTIVE_BUILDER_PHASE1_PROMPT)
 );
 
-server.tool(
+server.registerTool(
   "interactive_builder_coding",
-  "Interactive Builder Phase 2 — returns a system prompt that takes a blueprint from Phase 1 and builds a working single-file HTML prototype. Use the returned text as your operating instructions.",
-  {},
+  {
+    title: "Interactive Builder — Coding",
+    description:
+      "Returns a system prompt that takes a blueprint from the planning phase and builds a working single-file HTML prototype.",
+    inputSchema: {},
+    annotations: READ_ONLY_ANNOTATIONS,
+  },
   async () => textResult(INTERACTIVE_BUILDER_PHASE2_PROMPT)
 );
 
-server.tool(
+server.registerTool(
   "autonomy_coach",
-  "Course Autonomy Coach — returns a system prompt that helps university instructors embed student autonomy into courses using 20 proven strategies. Use the returned text as your operating instructions.",
   {
-    course_subject: z.string().optional().describe('Subject area (e.g., "Fluid Mechanics")'),
-    course_level: z.string().optional().describe('Level (e.g., "introductory undergraduate")'),
+    title: "Course Autonomy Coach",
+    description:
+      "Returns a system prompt that helps university instructors embed student autonomy into courses using 20 proven strategies.",
+    inputSchema: {
+      course_subject: z.string().optional().describe('Subject area (e.g., "Fluid Mechanics")'),
+      course_level: z.string().optional().describe('Level (e.g., "introductory undergraduate")'),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ course_subject, course_level }) => {
     let prompt = AUTONOMY_COACH_PROMPT;
@@ -310,12 +342,17 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "engagement_opener",
-  "Joyful Opener Designer — returns a system prompt that creates a 3-minute classroom micro-experiment sparking curiosity through cognitive dissonance, sensory surprise, or collaborative discovery. Use the returned text as your operating instructions.",
   {
-    course_title: z.string().optional().describe('Course name and level'),
-    concept: z.string().optional().describe('Specific concept being introduced'),
+    title: "Joyful Opener Designer",
+    description:
+      "Returns a system prompt that creates a 3-minute classroom micro-experiment sparking curiosity through cognitive dissonance, sensory surprise, or collaborative discovery.",
+    inputSchema: {
+      course_title: z.string().optional().describe("Course name and level"),
+      concept: z.string().optional().describe("Specific concept being introduced"),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ course_title, concept }) => {
     let prompt = ENGAGEMENT_OPENER_PROMPT;
@@ -329,12 +366,17 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "passion_connector",
-  "Passion Connector — returns a system prompt that helps educators design a 5-minute classroom segment linking their personal passion to course content. Use the returned text as your operating instructions.",
   {
-    passion: z.string().optional().describe("The educator's passion or hobby"),
-    course: z.string().optional().describe("The course or lesson focus"),
+    title: "Passion Connector",
+    description:
+      "Returns a system prompt that helps educators design a 5-minute classroom segment linking their personal passion to course content.",
+    inputSchema: {
+      passion: z.string().optional().describe("The educator's passion or hobby"),
+      course: z.string().optional().describe("The course or lesson focus"),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ passion, course }) => {
     let prompt = PASSION_CONNECTOR_PROMPT;
@@ -348,13 +390,21 @@ server.tool(
   }
 );
 
-server.tool(
+server.registerTool(
   "prompt_optimizer",
-  "Prompt Optimizer — returns a system prompt that rewrites rough prompts into precise, production-ready prompts for Claude, Gemini, or GPT. Use the returned text as your operating instructions.",
   {
-    target_model: z.enum(["Claude", "Gemini", "GPT", "model-agnostic"]).optional().describe('Target AI model'),
-    raw_prompt: z.string().optional().describe("The rough prompt to optimize"),
-    optional_context: z.string().optional().describe("Additional context"),
+    title: "Prompt Optimizer",
+    description:
+      "Returns a system prompt that rewrites rough prompts into precise, production-ready prompts for Claude, Gemini, or GPT.",
+    inputSchema: {
+      target_model: z
+        .enum(["Claude", "Gemini", "GPT", "model-agnostic"])
+        .optional()
+        .describe("Target AI model"),
+      raw_prompt: z.string().optional().describe("The rough prompt to optimize"),
+      optional_context: z.string().optional().describe("Additional context"),
+    },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   async ({ target_model, raw_prompt, optional_context }) => {
     return textResult(getOptimizerPrompt(target_model, raw_prompt, optional_context));
