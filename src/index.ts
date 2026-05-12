@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express, { type Request, type Response } from "express";
-import { randomUUID } from "crypto";
+import cors from "cors";
 import { z } from "zod";
 
 import { AIAS_PROMPT } from "./content/aias.js";
@@ -15,12 +15,22 @@ import { ENGAGEMENT_OPENER_PROMPT } from "./content/engagement.js";
 import { PASSION_CONNECTOR_PROMPT } from "./content/passion.js";
 import { getOptimizerPrompt } from "./content/optimizer.js";
 
-// ─── Server setup ─────────────────────────────────────────────────────────────
+// ─── Server factory ───────────────────────────────────────────────────────────
+// Stateless mode: each MCP request gets a fresh server + transport. This
+// matches OpenAI's recommended pattern for ChatGPT MCP connectors and avoids
+// session-state issues during validator probes.
 
-const server = new McpServer({
-  name: "sids-eml-studio-mcp",
-  version: "1.0.0",
-});
+function createMcpServer(): McpServer {
+  const server = new McpServer({
+    name: "sids-eml-studio-mcp",
+    version: "1.0.0",
+  });
+
+  registerPromptsAndTools(server);
+  return server;
+}
+
+function registerPromptsAndTools(server: McpServer): void {
 
 // ─── Prompt: AIAS Advisor ─────────────────────────────────────────────────────
 
@@ -411,81 +421,99 @@ server.registerTool(
   }
 );
 
+} // ─── end registerPromptsAndTools ─────────────────────────────────────────────
+
 // ─── HTTP Server ──────────────────────────────────────────────────────────────
 
 const app = express();
-app.use(express.json());
 
-// Store active transports by session ID
-const transports = new Map<string, StreamableHTTPServerTransport>();
+// CORS — allow any origin (this is a public, unauthenticated service)
+app.use(
+  cors({
+    origin: "*",
+    exposedHeaders: ["mcp-session-id"],
+    allowedHeaders: ["Content-Type", "Accept", "mcp-session-id", "mcp-protocol-version", "Authorization"],
+    methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  })
+);
+app.options("*", cors());
 
-// Health check
+app.use(express.json({ limit: "4mb" }));
+
+// Health check (browser-friendly)
 app.get("/", (_req: Request, res: Response) => {
   res.json({
     name: "Sid's EML Studio MCP Server",
     version: "1.0.0",
-    prompts: [
-      "aias-advisor",
-      "eml-architect",
-      "interactive-builder-planning",
-      "interactive-builder-coding",
-      "autonomy-coach",
-      "engagement-opener",
-      "passion-connector",
-      "prompt-optimizer",
+    mcp_endpoint: "/mcp",
+    tools: [
+      "aias_advisor",
+      "eml_architect",
+      "interactive_builder_planning",
+      "interactive_builder_coding",
+      "autonomy_coach",
+      "engagement_opener",
+      "passion_connector",
+      "prompt_optimizer",
     ],
     status: "ok",
   });
 });
 
-// Main MCP endpoint — POST (new requests and messages)
+// OAuth discovery probes — return clean 404 JSON so ChatGPT knows there's no
+// OAuth/DCR rather than getting Express's HTML 404 page (which can confuse
+// the validator).
+const oauthProbe = (_req: Request, res: Response) => {
+  res.status(404).json({ error: "not_found", error_description: "this server uses no authentication" });
+};
+app.get("/.well-known/oauth-authorization-server", oauthProbe);
+app.get("/.well-known/oauth-protected-resource", oauthProbe);
+app.get("/.well-known/openid-configuration", oauthProbe);
+
+// Main MCP endpoint — stateless POST handling.
+// Each request gets its own server + transport, then both close.
 app.post("/mcp", async (req: Request, res: Response) => {
-  const sessionId = (req.headers["mcp-session-id"] as string) || randomUUID();
-
-  let transport = transports.get(sessionId);
-
-  if (!transport) {
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => sessionId,
-      onsessioninitialized: (id) => {
-        transports.set(id, transport!);
-      },
+  try {
+    const server = createMcpServer();
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined, // stateless: no session ID required
+      enableJsonResponse: true,
     });
 
-    transport.onclose = () => {
-      transports.delete(sessionId);
-    };
+    res.on("close", () => {
+      transport.close();
+      server.close();
+    });
 
     await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err) {
+    console.error("MCP POST error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: "2.0",
+        error: { code: -32603, message: "Internal server error" },
+        id: null,
+      });
+    }
   }
-
-  await transport.handleRequest(req, res, req.body);
 });
 
-// SSE stream for server-sent events (GET)
-app.get("/mcp", async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string;
-
-  if (!sessionId || !transports.has(sessionId)) {
-    res.status(400).json({ error: "No active session. Send a POST to /mcp first." });
-    return;
-  }
-
-  const transport = transports.get(sessionId)!;
-  await transport.handleRequest(req, res);
+// In stateless mode, GET and DELETE are not used. Respond 405.
+app.get("/mcp", (_req: Request, res: Response) => {
+  res.status(405).json({
+    jsonrpc: "2.0",
+    error: { code: -32000, message: "Method not allowed in stateless mode. Use POST." },
+    id: null,
+  });
 });
 
-// Session termination (DELETE)
-app.delete("/mcp", async (req: Request, res: Response) => {
-  const sessionId = req.headers["mcp-session-id"] as string;
-
-  if (sessionId && transports.has(sessionId)) {
-    const transport = transports.get(sessionId)!;
-    await transport.handleRequest(req, res);
-    transports.delete(sessionId);
-  } else {
-    res.status(200).json({ success: true });
-  }
+app.delete("/mcp", (_req: Request, res: Response) => {
+  res.status(405).json({
+    jsonrpc: "2.0",
+    error: { code: -32000, message: "Method not allowed in stateless mode." },
+    id: null,
+  });
 });
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
