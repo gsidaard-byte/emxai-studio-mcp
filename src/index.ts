@@ -240,6 +240,127 @@ server.prompt(
   }
 );
 
+// ─── Tools (mirror of prompts, for clients that don't support MCP prompts) ───
+// ChatGPT's MCP connector currently requires tools rather than prompts.
+// Each tool returns the same content as its corresponding prompt.
+
+const textResult = (text: string) => ({
+  content: [{ type: "text" as const, text }],
+});
+
+server.tool(
+  "aias_advisor",
+  "AI Assessment Scale Advisor — returns a system prompt that helps educators redesign homework using the 5-level AI Assessment Scale (AIAS). Use the returned text as your operating instructions for the rest of the conversation.",
+  {
+    subject: z.string().optional().describe('Subject area (e.g., "Engineering", "Biology")'),
+    level: z.string().optional().describe('Student level (e.g., "undergraduate")'),
+  },
+  async ({ subject, level }) => {
+    let prompt = AIAS_PROMPT;
+    if (subject || level) {
+      const ctx = [level, subject].filter(Boolean).join(" ");
+      prompt += `\n\nContext note: The educator is working with a ${ctx} course. Tailor your recommendations accordingly.`;
+    }
+    return textResult(prompt);
+  }
+);
+
+server.tool(
+  "eml_architect",
+  "EML Architect — returns a system prompt that converts traditional textbook problems into Entrepreneurial Mindset Learning (EML) tasks. Includes all reference materials (Habits of EM, Curiosity Methods, Mindset Methods, EM Openers, Adaptable EML Ideas). Use the returned text as your operating instructions.",
+  {
+    em_habits: z.string().optional().describe('EM habits to focus on, e.g. "Curiosity, Creating Value"'),
+    problems: z.string().optional().describe("Textbook problem(s) to reframe"),
+  },
+  async ({ em_habits, problems }) => {
+    let prompt = getEMLArchitectPrompt(em_habits);
+    if (problems) prompt += `\n\n<PROBLEMS>\n${problems}\n</PROBLEMS>`;
+    return textResult(prompt);
+  }
+);
+
+server.tool(
+  "interactive_builder_planning",
+  "Interactive Builder Phase 1 — returns a system prompt that guides faculty through designing a stateless, privacy-safe educational web-app. Produces a Final Blueprint Summary. Use the returned text as your operating instructions.",
+  {},
+  async () => textResult(INTERACTIVE_BUILDER_PHASE1_PROMPT)
+);
+
+server.tool(
+  "interactive_builder_coding",
+  "Interactive Builder Phase 2 — returns a system prompt that takes a blueprint from Phase 1 and builds a working single-file HTML prototype. Use the returned text as your operating instructions.",
+  {},
+  async () => textResult(INTERACTIVE_BUILDER_PHASE2_PROMPT)
+);
+
+server.tool(
+  "autonomy_coach",
+  "Course Autonomy Coach — returns a system prompt that helps university instructors embed student autonomy into courses using 20 proven strategies. Use the returned text as your operating instructions.",
+  {
+    course_subject: z.string().optional().describe('Subject area (e.g., "Fluid Mechanics")'),
+    course_level: z.string().optional().describe('Level (e.g., "introductory undergraduate")'),
+  },
+  async ({ course_subject, course_level }) => {
+    let prompt = AUTONOMY_COACH_PROMPT;
+    if (course_subject || course_level) {
+      const ctx = [course_level, course_subject].filter(Boolean).join(" ");
+      prompt += `\n\nContext note: The instructor is teaching a ${ctx} course. Adapt all recommendations to this discipline and level.`;
+    }
+    return textResult(prompt);
+  }
+);
+
+server.tool(
+  "engagement_opener",
+  "Joyful Opener Designer — returns a system prompt that creates a 3-minute classroom micro-experiment sparking curiosity through cognitive dissonance, sensory surprise, or collaborative discovery. Use the returned text as your operating instructions.",
+  {
+    course_title: z.string().optional().describe('Course name and level'),
+    concept: z.string().optional().describe('Specific concept being introduced'),
+  },
+  async ({ course_title, concept }) => {
+    let prompt = ENGAGEMENT_OPENER_PROMPT;
+    if (course_title || concept) {
+      const parts: string[] = [];
+      if (course_title) parts.push(`Course: ${course_title}`);
+      if (concept) parts.push(`Concept: ${concept}`);
+      prompt += `\n\nContext note: Skip the intake question. ${parts.join("; ")}. Proceed directly to generating three options.`;
+    }
+    return textResult(prompt);
+  }
+);
+
+server.tool(
+  "passion_connector",
+  "Passion Connector — returns a system prompt that helps educators design a 5-minute classroom segment linking their personal passion to course content. Use the returned text as your operating instructions.",
+  {
+    passion: z.string().optional().describe("The educator's passion or hobby"),
+    course: z.string().optional().describe("The course or lesson focus"),
+  },
+  async ({ passion, course }) => {
+    let prompt = PASSION_CONNECTOR_PROMPT;
+    if (passion || course) {
+      const parts: string[] = [];
+      if (passion) parts.push(`[X] = ${passion}`);
+      if (course) parts.push(`[Y] = ${course}`);
+      prompt += `\n\nContext note: Skip the intake questions. ${parts.join("; ")}. Proceed directly to generating two classroom segment ideas.`;
+    }
+    return textResult(prompt);
+  }
+);
+
+server.tool(
+  "prompt_optimizer",
+  "Prompt Optimizer — returns a system prompt that rewrites rough prompts into precise, production-ready prompts for Claude, Gemini, or GPT. Use the returned text as your operating instructions.",
+  {
+    target_model: z.enum(["Claude", "Gemini", "GPT", "model-agnostic"]).optional().describe('Target AI model'),
+    raw_prompt: z.string().optional().describe("The rough prompt to optimize"),
+    optional_context: z.string().optional().describe("Additional context"),
+  },
+  async ({ target_model, raw_prompt, optional_context }) => {
+    return textResult(getOptimizerPrompt(target_model, raw_prompt, optional_context));
+  }
+);
+
 // ─── HTTP Server ──────────────────────────────────────────────────────────────
 
 const app = express();
