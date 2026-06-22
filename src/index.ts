@@ -31,7 +31,7 @@ import {
 
 function createMcpServer(): McpServer {
   const server = new McpServer({
-    name: "sids-eml-studio-mcp",
+    name: "emxai-studio-mcp",
     version: "1.0.0",
   });
 
@@ -620,7 +620,7 @@ app.use(express.json({ limit: "4mb" }));
 // Health check (browser-friendly)
 app.get("/", (_req: Request, res: Response) => {
   res.json({
-    name: "Sid's EML Studio MCP Server",
+    name: "EMxAI Studio MCP Server",
     version: "1.0.0",
     mcp_endpoint: "/mcp",
     tools: [
@@ -700,6 +700,6 @@ app.delete("/mcp", (_req: Request, res: Response) => {
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 app.listen(PORT, () => {
-  console.log(`Sid's EML Studio MCP Server running on port ${PORT}`);
+  console.log(`EMxAI Studio MCP Server running on port ${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
 });

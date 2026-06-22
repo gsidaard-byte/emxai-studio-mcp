@@ -1,4 +1,4 @@
-# Sid's EML Studio MCP
+# EMxAI Studio MCP
 
 A hosted MCP (Model Context Protocol) server that exposes curated teaching prompts for workshops and faculty use. Works with both **Claude** and **ChatGPT**.
 
@@ -46,15 +46,15 @@ cd /path/to/MCP_EM
 git init
 git add .
 git commit -m "Initial teaching prompts MCP server"
-gh repo create sids-eml-studio-mcp --public --source=. --push
+gh repo create emxai-studio-mcp --public --source=. --push
 ```
 
 ### Step 2: Deploy on Railway
 
 1. Go to [railway.app](https://railway.app) and sign in with GitHub.
-2. Click **New Project → Deploy from GitHub repo** and select `sids-eml-studio-mcp`.
+2. Click **New Project → Deploy from GitHub repo** and select `emxai-studio-mcp`.
 3. Railway auto-detects the Dockerfile and deploys.
-4. In your project settings, find the **public URL** (e.g., `https://sids-eml-studio-mcp.up.railway.app`).
+4. In your project settings, find the **public URL** (e.g., `https://emxai-studio-mcp.up.railway.app`).
 
 Your MCP endpoint will be: `https://your-app.up.railway.app/mcp`
 
@@ -67,7 +67,7 @@ Add to your Claude Desktop config file (`~/Library/Application Support/Claude/cl
 ```json
 {
   "mcpServers": {
-    "sids-eml-studio": {
+    "emxai-studio": {
       "type": "http",
       "url": "https://your-app.up.railway.app/mcp"
     }
@@ -102,7 +102,7 @@ For local Claude Desktop use:
 ```json
 {
   "mcpServers": {
-    "sids-eml-studio-local": {
+    "emxai-studio-local": {
       "type": "http",
       "url": "http://localhost:3000/mcp"
     }
