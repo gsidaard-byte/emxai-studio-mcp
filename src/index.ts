@@ -14,6 +14,15 @@ import { AUTONOMY_COACH_PROMPT } from "./content/autonomy.js";
 import { ENGAGEMENT_OPENER_PROMPT } from "./content/engagement.js";
 import { PASSION_CONNECTOR_PROMPT } from "./content/passion.js";
 import { getOptimizerPrompt } from "./content/optimizer.js";
+import {
+  HABITS,
+  WORKFLOWS,
+  getHabit,
+  getWorkflow,
+  formatHabit,
+  formatWorkflow,
+  formatList,
+} from "./content/em-field-guide.js";
 
 // ─── Server factory ───────────────────────────────────────────────────────────
 // Stateless mode: each MCP request gets a fresh server + transport. This
@@ -421,6 +430,174 @@ server.registerTool(
   }
 );
 
+  // ─── EM × AI Field Guide ────────────────────────────────────────────────────
+  // The 18 KEEN Habits of Entrepreneurial Mindset for an age of AI, plus 7
+  // workflows. Content lives in ./content/em-field-guide.ts (canonical, from
+  // context.md). Names accepted case- and punctuation-insensitively.
+
+  const HABIT_NAMES = Object.keys(HABITS);
+  const WORKFLOW_NAMES = Object.keys(WORKFLOWS);
+
+  server.registerTool(
+    "em_list",
+    {
+      title: "EM Field Guide — Map",
+      description:
+        "Returns the full map of the EM × AI Field Guide: the 3 families (Curiosity, Connections, Creating Value), all 18 KEEN habits with their one-line tensions, and the 7 workflows. Start here to see what's available, then call em_habit or em_workflow for full content.",
+      inputSchema: {},
+      annotations: READ_ONLY_ANNOTATIONS,
+    },
+    async () => textResult(formatList())
+  );
+
+  server.registerTool(
+    "em_habit",
+    {
+      title: "EM Habit",
+      description:
+        `Returns the full content for one of the 18 KEEN entrepreneurial-mindset habits: its family, definition, named frameworks, the AI-era move, how AI helps build it, the anti-pattern, the one-line tension, the Run-it-yourself paste-ready prompt, and the Run-it-with-students blueprint. Valid habits: ${HABIT_NAMES.join(", ")}.`,
+      inputSchema: {
+        name: z.string().describe(`The habit name, e.g. "Systems Thinking" or "Contrarian Thinking". One of: ${HABIT_NAMES.join(", ")}`),
+      },
+      annotations: READ_ONLY_ANNOTATIONS,
+    },
+    async ({ name }) => {
+      const habit = getHabit(name);
+      if (!habit) {
+        return textResult(
+          `No habit named "${name}". Valid habits are: ${HABIT_NAMES.join(", ")}. Call em_list to see the full map.`
+        );
+      }
+      return textResult(formatHabit(habit));
+    }
+  );
+
+  server.registerTool(
+    "em_coach",
+    {
+      title: "EM Habit Coach",
+      description:
+        `Returns just the Run-it-yourself paste-ready prompt for a habit (plus its framing: what it does, when to use it, what good output looks like). Use this when you want to run a habit on your own task right now. Valid habits: ${HABIT_NAMES.join(", ")}.`,
+      inputSchema: {
+        habit: z.string().describe(`The habit name to coach, e.g. "Risk Awareness". One of: ${HABIT_NAMES.join(", ")}`),
+      },
+      annotations: READ_ONLY_ANNOTATIONS,
+    },
+    async ({ habit }) => {
+      const h = getHabit(habit);
+      if (!h) {
+        return textResult(
+          `No habit named "${habit}". Valid habits are: ${HABIT_NAMES.join(", ")}. Call em_list to see the full map.`
+        );
+      }
+      const r = h.runItYourself;
+      return textResult(
+        `# ${h.name} — Run it yourself\n\n**What it does:** ${r.whatItDoes}\n**When to use it:** ${r.whenToUse}\n**What good output looks like:** ${r.whatGoodOutputLooksLike}\n\n**Prompt (paste-ready):**\n\`\`\`\n${r.prompt}\n\`\`\``
+      );
+    }
+  );
+
+  server.registerTool(
+    "em_workflow",
+    {
+      title: "EM Workflow",
+      description:
+        `Returns a full multi-habit workflow: the habits it composes, when to reach for it, the Run-it-yourself orchestration prompt (a system prompt with a pause-after-each-step contract), the Run-it-with-students blueprint, and the meta-prompt to build a class activity. Valid workflows: ${WORKFLOW_NAMES.join(", ")}.`,
+      inputSchema: {
+        name: z.string().describe(`The workflow name, e.g. "Assumption Buster" or "Reality Check". One of: ${WORKFLOW_NAMES.join(", ")}`),
+      },
+      annotations: READ_ONLY_ANNOTATIONS,
+    },
+    async ({ name }) => {
+      const workflow = getWorkflow(name);
+      if (!workflow) {
+        return textResult(
+          `No workflow named "${name}". Valid workflows are: ${WORKFLOW_NAMES.join(", ")}. Call em_list to see the full map.`
+        );
+      }
+      return textResult(formatWorkflow(workflow));
+    }
+  );
+
+  server.registerTool(
+    "em_diagnostic",
+    {
+      title: "EM × AI Diagnostic",
+      description:
+        "Returns the EM × AI Diagnostic orchestration prompt. Start here when you don't yet know which habit or workflow you need — it assesses your AI practice across all three Cs and routes you to the right tool. Use the returned text as your operating instructions.",
+      inputSchema: {},
+      annotations: READ_ONLY_ANNOTATIONS,
+    },
+    async () => {
+      const diagnostic = getWorkflow("EM × AI Diagnostic");
+      if (!diagnostic) return textResult("Diagnostic content unavailable.");
+      return textResult(diagnostic.pm);
+    }
+  );
+
+  // ─── EM × AI Field Guide prompts (Claude slash-menu parity) ──────────────────
+
+  const promptMessage = (text: string) => ({
+    messages: [{ role: "user" as const, content: { type: "text" as const, text } }],
+  });
+
+  server.prompt(
+    "em-list",
+    "EM Field Guide map — the 3 families, 18 KEEN habits with their tensions, and 7 workflows. Start here to browse what's available.",
+    async () => promptMessage(formatList())
+  );
+
+  server.prompt(
+    "em-habit",
+    "Full content for one of the 18 KEEN entrepreneurial-mindset habits (frameworks, AI-era move, anti-pattern, Run-it-yourself prompt, Run-it-with-students blueprint).",
+    { name: z.string().describe(`Habit name, e.g. "Systems Thinking". One of: ${Object.keys(HABITS).join(", ")}`) },
+    async ({ name }) => {
+      const habit = getHabit(name);
+      return promptMessage(
+        habit
+          ? formatHabit(habit)
+          : `No habit named "${name}". Valid habits: ${Object.keys(HABITS).join(", ")}.`
+      );
+    }
+  );
+
+  server.prompt(
+    "em-coach",
+    "Just the Run-it-yourself paste-ready prompt for a habit, ready to run on your own task.",
+    { habit: z.string().describe(`Habit name, e.g. "Risk Awareness". One of: ${Object.keys(HABITS).join(", ")}`) },
+    async ({ habit }) => {
+      const h = getHabit(habit);
+      if (!h) return promptMessage(`No habit named "${habit}". Valid habits: ${Object.keys(HABITS).join(", ")}.`);
+      const r = h.runItYourself;
+      return promptMessage(
+        `# ${h.name} — Run it yourself\n\n**What it does:** ${r.whatItDoes}\n**When to use it:** ${r.whenToUse}\n**What good output looks like:** ${r.whatGoodOutputLooksLike}\n\n**Prompt:**\n${r.prompt}`
+      );
+    }
+  );
+
+  server.prompt(
+    "em-workflow",
+    "Full multi-habit workflow: orchestration prompt with pause-after-each-step contract, plus the Run-it-with-students blueprint and build-an-activity meta-prompt.",
+    { name: z.string().describe(`Workflow name, e.g. "Assumption Buster". One of: ${Object.keys(WORKFLOWS).join(", ")}`) },
+    async ({ name }) => {
+      const workflow = getWorkflow(name);
+      return promptMessage(
+        workflow
+          ? formatWorkflow(workflow)
+          : `No workflow named "${name}". Valid workflows: ${Object.keys(WORKFLOWS).join(", ")}.`
+      );
+    }
+  );
+
+  server.prompt(
+    "em-diagnostic",
+    "EM × AI Diagnostic — assesses your AI practice across all three Cs and routes you to the right habit or workflow. Start here if unsure where to begin.",
+    async () => {
+      const diagnostic = getWorkflow("EM × AI Diagnostic");
+      return promptMessage(diagnostic ? diagnostic.pm : "Diagnostic content unavailable.");
+    }
+  );
+
 } // ─── end registerPromptsAndTools ─────────────────────────────────────────────
 
 // ─── HTTP Server ──────────────────────────────────────────────────────────────
@@ -455,6 +632,11 @@ app.get("/", (_req: Request, res: Response) => {
       "engagement_opener",
       "passion_connector",
       "prompt_optimizer",
+      "em_list",
+      "em_habit",
+      "em_coach",
+      "em_workflow",
+      "em_diagnostic",
     ],
     status: "ok",
   });

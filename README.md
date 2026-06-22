@@ -2,7 +2,9 @@
 
 A hosted MCP (Model Context Protocol) server that exposes curated teaching prompts for workshops and faculty use. Works with both **Claude** and **ChatGPT**.
 
-## Available Prompts
+Every capability is exposed both as a **prompt** (Claude slash-menu, e.g. `/eml-architect`) and as a **tool** (ChatGPT connector, e.g. `eml_architect`). Tool names use underscores; prompt names use hyphens.
+
+## Teaching Prompts
 
 | Prompt | Description | Parameters |
 |---|---|---|
@@ -14,6 +16,22 @@ A hosted MCP (Model Context Protocol) server that exposes curated teaching promp
 | `engagement-opener` | Joyful Opener Designer — creates a 3-minute curiosity-sparking classroom micro-experiment | `course_title`, `concept` |
 | `passion-connector` | Passion Connector — links personal passion to course content in 5 minutes | `passion`, `course` |
 | `prompt-optimizer` | Prompt Optimizer — rewrites rough prompts for Claude, Gemini, or GPT | `target_model`, `raw_prompt` |
+
+## EM × AI Field Guide
+
+The 18 KEEN Habits of Entrepreneurial Mindset for an age of AI, organized as 3 families → 18 habits → 7 workflows. Content is canonical from `context.md`.
+
+| Prompt | Description | Parameters |
+|---|---|---|
+| `em-list` | The full map — 3 families, 18 habits with their tensions, 7 workflows. Start here. | — |
+| `em-habit` | Full content for one habit (frameworks, AI-era move, anti-pattern, both delivery modes) | `name` |
+| `em-coach` | Just the Run-it-yourself paste-ready prompt for a habit | `habit` |
+| `em-workflow` | A multi-habit workflow with orchestration prompt + student blueprint + build-activity meta-prompt | `name` |
+| `em-diagnostic` | The EM × AI Diagnostic — assesses your AI practice and routes you to the right tool | — |
+
+**18 habits** — Curiosity: Inquisitiveness, Contrarian Thinking, Opportunity Seeking, Experimentation, Confronting Ambiguity, Future-Minded · Connections: Creativity, Systems Thinking, Knowledge Synthesis, Implications Thinking, Strategic Thinking, Risk Awareness · Creating Value: Value Awareness, Customer-Centric Thinking, Impact Thinking, Socially Minded, Persistence, Resourcefulness
+
+**7 workflows** — EM × AI Diagnostic, Reality Check, Assumption Buster, Experiment Multiplier, Expertise to Files, System Builder, Value-Chain Climber
 
 ---
 
