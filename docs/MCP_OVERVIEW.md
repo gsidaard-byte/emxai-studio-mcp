@@ -16,8 +16,8 @@ This server is **read-only and stateless**. It stores no user data, requires no 
 
 | | |
 |---|---|
-| **Endpoint URL** | `https://sids-eml-studio-mcp-production.up.railway.app/mcp` |
-| **Health check** | `https://sids-eml-studio-mcp-production.up.railway.app/` (returns JSON status + capability list) |
+| **Endpoint URL** | `https://emxai-studio-mcp-production.up.railway.app/mcp` |
+| **Health check** | `https://emxai-studio-mcp-production.up.railway.app/` (returns JSON status + capability list) |
 | **Authentication** | None (public) |
 | **Transport** | Streamable HTTP (stateless) |
 | **Hosting** | Railway (auto-deploys from GitHub) |
@@ -32,7 +32,7 @@ Add to `claude_desktop_config.json`, then fully quit and reopen Claude:
   "mcpServers": {
     "emxai-studio": {
       "type": "http",
-      "url": "https://sids-eml-studio-mcp-production.up.railway.app/mcp"
+      "url": "https://emxai-studio-mcp-production.up.railway.app/mcp"
     }
   }
 }
