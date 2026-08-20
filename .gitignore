@@ -12,3 +12,5 @@ MicroInjections of Autonomy/
 MicroInjections of Engagement/
 MicroInjections of Passion/
 Optimizing Prompt/
+.venv/
+__pycache__/

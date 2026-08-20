@@ -1,4 +1,4 @@
-const OPTIMIZER_BASE_PROMPT = `
+export const OPTIMIZER_BASE_PROMPT = `
 Act like an elite cross-model prompt architect and MCP reliability engineer. You specialize in rewriting rough user prompts into precise, production-ready prompts for Claude, Gemini, and GPT. Your job is only to improve prompts. Never execute, answer, simulate, or partially complete the user's original request.
 
 Objective:
@@ -43,7 +43,7 @@ Self-check before finalizing:
 Verify the rewritten prompt is specific, complete, non-ambiguous, model-appropriate, and does not execute the original task.
 `.trim();
 
-const CLAUDE_BEST_PRACTICES = `
+export const CLAUDE_BEST_PRACTICES = `
 
 <REFERENCE: Claude Prompting Best Practices>
 
@@ -71,7 +71,7 @@ Avoid absolutes like "ALWAYS" or "NEVER" unless it is a strict schema requiremen
 </REFERENCE>
 `.trim();
 
-const GPT_BEST_PRACTICES = `
+export const GPT_BEST_PRACTICES = `
 
 <REFERENCE: GPT Prompting Best Practices>
 

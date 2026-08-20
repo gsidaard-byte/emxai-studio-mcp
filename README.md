@@ -35,28 +35,33 @@ The 18 KEEN Habits of Entrepreneurial Mindset for an age of AI, organized as 3 f
 
 ---
 
-## Deployment (Railway — Recommended)
+## Deployment (FastMCP Cloud — Recommended)
 
-Railway provides a free tier with persistent server support needed for MCP streaming.
+The production server is [`server.py`](server.py), a Python [FastMCP](https://pypi.org/project/fastmcp/) app. It loads its content from `content.json`.
 
-### Step 1: Push to GitHub
+1. Go to [fastmcp.cloud](https://fastmcp.cloud) and sign in with GitHub.
+2. Create a project from the `emxai-studio-mcp` repo.
+3. Set the entrypoint to `server.py` (the server object is `mcp`).
+4. Deploy. Your MCP endpoint will be `https://<project>.fastmcp.app/mcp`.
+
+Every push to `main` redeploys automatically.
+
+### Content pipeline
+
+The **TypeScript files in `src/content/` are the source of truth**. After editing any content there, regenerate `content.json` and commit it:
 
 ```bash
-cd /path/to/MCP_EM
-git init
-git add .
-git commit -m "Initial teaching prompts MCP server"
-gh repo create emxai-studio-mcp --public --source=. --push
+npm run build && node scripts/dump-content.mjs
 ```
 
-### Step 2: Deploy on Railway
+The TypeScript server (`src/index.ts`, deployable via the `Dockerfile` to Railway/Render) remains as an alternative; both serve identical content.
 
-1. Go to [railway.app](https://railway.app) and sign in with GitHub.
-2. Click **New Project → Deploy from GitHub repo** and select `emxai-studio-mcp`.
-3. Railway auto-detects the Dockerfile and deploys.
-4. In your project settings, find the **public URL** (e.g., `https://emxai-studio-mcp.up.railway.app`).
+### Run the Python server locally
 
-Your MCP endpoint will be: `https://your-app.up.railway.app/mcp`
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python server.py    # http://localhost:3000/mcp
+```
 
 ---
 
