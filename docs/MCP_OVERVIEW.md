@@ -1,6 +1,6 @@
 # EMxAI Studio MCP
 
-A hosted **Model Context Protocol (MCP)** server that delivers curated teaching prompts and the EM × AI Field Guide directly inside AI assistants. Built for engineering faculty to use in workshops and share with colleagues. Works with both **Claude** and **ChatGPT**.
+A hosted **Model Context Protocol (MCP)** server that delivers curated teaching prompts, the EM × AI Field Guide, and the EM Assessment Toolkit directly inside AI assistants. Built for engineering faculty to use in workshops and share with colleagues. Works with both **Claude** and **ChatGPT**.
 
 ---
 
@@ -53,7 +53,7 @@ Every capability is exposed in **two forms** so it works natively on both platfo
 - **As a prompt** — for Claude's slash menu. Names use hyphens (`eml-architect`).
 - **As a tool** — for ChatGPT's connector. Names use underscores (`eml_architect`).
 
-Both return identical content. There are **13 capabilities** in two groups.
+Both return identical content. There are **19 tools** in three groups (the first two groups are also exposed as prompts).
 
 ### Group 1 — Teaching Prompts (8)
 
@@ -85,6 +85,23 @@ A structured library of the **18 KEEN Habits of Entrepreneurial Mindset for an a
 | `em-diagnostic` | `em_diagnostic` | The routing diagnostic — assesses the user's AI practice across all 3 Cs and points them to the right habit or workflow | — |
 
 Habit and workflow names are matched **case- and punctuation-insensitively** (`"systems thinking"`, `"Systems Thinking"`, and `"systems_thinking"` all resolve). An unrecognized name returns a friendly error listing the valid options.
+
+### Group 3 — EM Assessment Toolkit (6)
+
+Source-grounded, course-embedded **assessment** of the 18 Habits of EM and eight observable EM behaviors. These tools assess demonstrated performance in a particular artifact or evidence episode — never personality or a stable trait. Four validity safeguards are built in: score only what the task genuinely elicited; use `NE` (not elicited) rather than converting missing evidence into a `0`; require individual evidence for individual claims; and treat AI output as tool output, assessing the student's framing, verification, rejection, revision, and application.
+
+| Tool | What it does | Parameters |
+|---|---|---|
+| `em_list_habits` | Discover and filter the 18 habits (by 3C category or keyword search), with each habit's core intellectual theme | `category`, `search`, `limit`, `offset` |
+| `em_get_habit` | One habit's full assessment definition: official description, core theme, strong-evidence look-fors, "do not count" exclusions, and related observable behaviors | `habit` |
+| `em_get_behavior_rubric` | The four developmental anchors (0 Not yet evident → 3 Proficient) for one of the eight observable EM behaviors | `behavior` |
+| `em_plan_assessment` | An aligned elicitation and evidence plan for one assignment: 1–3 target habits, required evidence bundle, AI-transparency requirement, and stakes-appropriate corroboration | `assignment_name`, `artifact_type`, `target_habits`, `ai_use`, `stakes` |
+| `em_score_evidence_episode` | Applies deterministic NE/0–3 decision rules to one evidence episode after the instructor encodes their judgments as booleans; returns a provisional score, confidence, rationale, and next move | `target_habit` + 8 judgment booleans |
+| `em_synthesize_profile` | Produces guarded course-level screening statuses from multiple rated episodes; "Proficient candidate" requires 3+ valid occasions across 2+ task types with specific evidence quality gates | `episodes` |
+
+The recommended workflow: `em_list_habits` → `em_plan_assessment` (before assigning work) → `em_get_habit` + `em_score_evidence_episode` (per submission) → `em_synthesize_profile` (end of course). Every synthesized status requires instructor review — the tools inform judgment, they do not replace it.
+
+The server also exposes three reference resources (`em://habits`, `em://observable-behaviors`, `em://scoring-scale`) and a `review-em-evidence` prompt for construct-aligned review of a single evidence excerpt.
 
 ---
 
@@ -171,7 +188,8 @@ Every habit and workflow returned by the server carries this principle:
 ### Capability summary
 
 ```
-13 capabilities  =  8 teaching prompts  +  5 EM Field Guide access points
+19 tools  =  8 teaching prompts  +  5 EM Field Guide access points  +  6 EM Assessment tools
+14 prompts (Claude slash menu)  ·  3 reference resources
 Each exposed as both a prompt (Claude) and a tool (ChatGPT)
 Behind the Field Guide: 3 families · 18 habits · 7 workflows
 ```
@@ -195,3 +213,8 @@ Behind the Field Guide: 3 families · 18 habits · 7 workflows
 **Redesigning an assignment for AI**
 1. Call `aias-advisor` / `aias_advisor` with the subject and level.
 2. Paste the original homework problem; receive a 5-level redesign with rubrics and safeguards.
+
+**Assessing EM in student work**
+1. Before assigning: `em_list_habits` to pick 1–3 genuine targets, then `em_plan_assessment` for the elicitation and evidence plan.
+2. Per submission: `em_get_habit` to review the look-fors, judge the evidence, then `em_score_evidence_episode` to apply the NE/0–3 rules.
+3. End of course: `em_synthesize_profile` across episodes — treat the output as a screening status that requires instructor review.

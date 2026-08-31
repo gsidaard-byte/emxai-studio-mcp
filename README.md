@@ -33,6 +33,23 @@ The 18 KEEN Habits of Entrepreneurial Mindset for an age of AI, organized as 3 f
 
 **7 workflows** — EM × AI Diagnostic, Reality Check, Assumption Buster, Experiment Multiplier, Expertise to Files, System Builder, Value-Chain Climber
 
+## EM Assessment Toolkit
+
+Source-grounded, course-embedded assessment of the 18 Habits of EM and eight observable EM behaviors. Assesses demonstrated performance in artifacts, never personality; `NE` (not elicited) is always distinct from a score of `0`. Data and scoring logic live in `em_assessment_data.py` / `em_assessment_logic.py` (ported verbatim from the EM Assessment Toolkit).
+
+| Tool | Purpose | Key parameters |
+|---|---|---|
+| `em_list_habits` | Discover/filter the 18 habits with category and search filters | `category`, `search` |
+| `em_get_habit` | One habit's assessment definition: core theme, evidence look-fors, exclusions, related behaviors | `habit` |
+| `em_get_behavior_rubric` | The four developmental anchors (0–3) for one observable behavior | `behavior` |
+| `em_plan_assessment` | Aligned elicitation and evidence plan for one assignment (1–3 target habits, AI-use policy, stakes) | `assignment_name`, `artifact_type`, `target_habits`, `ai_use`, `stakes` |
+| `em_score_evidence_episode` | Deterministic NE/0–3 scoring of one evidence episode from encoded judgments | `target_habit` + 8 boolean judgments |
+| `em_synthesize_profile` | Guarded course-level screening statuses from multiple rated episodes | `episodes` |
+
+Also exposes `em://habits`, `em://observable-behaviors`, and `em://scoring-scale` resources, and a `review-em-evidence` prompt.
+
+**Server totals: 19 tools · 14 prompts · 3 resources.**
+
 ---
 
 ## Deployment (FastMCP Cloud — Recommended)
